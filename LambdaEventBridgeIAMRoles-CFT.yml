@@ -1,0 +1,169 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Lambda functions for AWS resource management
+
+Resources:
+  ResourceSummaryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      Code:
+        S3Bucket: sonix-project3
+        S3Key: ResourceSummaryFunction.zip
+      Description: Lambda function for summarizing AWS resources
+      Role: !GetAtt ResourceSummaryFunctionRole.Arn
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: arn:aws:sns:ap-south-1:264638186531:ResourceSummaryTopic
+
+  AutoStopEC2Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      Description: Lambda function to auto-stop EC2 instances
+      Code:
+        S3Bucket: sonix-project3
+        S3Key: AutoStopEC2Function.zip
+      Role: !GetAtt AutoStopEC2FunctionRole.Arn
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: arn:aws:sns:ap-south-1:264638186531:ResourceSummaryTopic
+
+  AutoStopRDSFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      Description: Lambda function to auto-stop RDS instances
+      Code:
+        S3Bucket: sonix-project3
+        S3Key: AutoStopRDSFunction.zip
+      Role: !GetAtt AutoStopRDSFunctionRole.Arn
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: arn:aws:sns:ap-south-1:264638186531:ResourceSummaryTopic
+
+  ResourceSummaryFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ResourceSummaryFunctionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: ResourceSummaryFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:DescribeInstanceStatus
+                  - rds:DescribeDBInstances
+                  - sns:Publish
+                Resource: '*'
+
+  AutoStopEC2FunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AutoStopEC2FunctionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: AutoStopEC2FunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                  - ec2:StopInstances
+                  - sns:Publish
+                Resource: '*'
+
+  AutoStopRDSFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: AutoStopRDSFunctionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: AutoStopRDSFunctionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rds:StopDBInstance
+                  - sns:Publish
+                Resource: '*'
+
+  ResourceSummaryFunctionEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Event rule for triggering ResourceSummaryFunction
+      ScheduleExpression: "cron(0 18 * * ? *)"  # Triggers daily at 6 PM UTC
+      Targets:
+        - Arn: !GetAtt ResourceSummaryFunction.Arn
+          Id: ResourceSummaryFunctionTarget
+
+  AutoStopEC2FunctionEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Event rule for triggering AutoStopEC2Function
+      ScheduleExpression: "cron(0 20 * * ? *)"  # Triggers daily at 8 PM UTC
+      Targets:
+        - Arn: !GetAtt AutoStopEC2Function.Arn
+          Id: AutoStopEC2FunctionTarget
+
+  AutoStopRDSFunctionEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Event rule for triggering AutoStopRDSFunction
+      ScheduleExpression: "cron(0 20 * * ? *)"  # Triggers daily at 8 PM UTC
+      Targets:
+        - Arn: !GetAtt AutoStopRDSFunction.Arn
+          Id: AutoStopRDSFunctionTarget
+
+Outputs:
+  ResourceSummaryFunctionArn:
+    Description: ResourceSummaryFunction Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+        - ResourceSummaryFunction
+        - Arn
+
+  AutoStopEC2FunctionArn:
+    Description: AutoStopEC2Function Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+        - AutoStopEC2Function
+        - Arn
+
+  AutoStopRDSFunctionArn:
+    Description: AutoStopRDSFunction Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+        - AutoStopRDSFunction
+        - Arn

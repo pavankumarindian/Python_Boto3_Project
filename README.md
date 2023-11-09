@@ -7,6 +7,7 @@ This repository contains Python scripts and configurations for automating the ma
 - [Phases](#phases)
 - [Setup](#setup)
 - [Usage](#usage)
+- [License](#license) 
 
 ## Introduction
 
@@ -67,3 +68,5 @@ pip install boto3
 
 3. **AWS Step Functions**: Start the AWS Step Functions state machine execution manually or schedule it using AWS EventBridge to manage the entire resource management process.
 
+##  License
+This repository is licensed under the MIT License.
